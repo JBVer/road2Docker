@@ -1,0 +1,64 @@
+version: '3' 
+
+services:
+  mariadb:
+    build: requirements/mariadb/
+    image: mariadb
+    container_name: mariadb
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - database:/var/lib/mysql
+    networks:
+      - network
+    expose:
+      - "3306"
+
+  wordpress:
+    depends_on:
+      - mariadb
+    build: requirements/wordpress/
+    image: wordpress
+    container_name: wordpress
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - wp_files:/var/www/html
+    networks:
+      - network
+    expose:
+      - "9000"
+
+  nginx:
+    depends_on:
+      - wordpress
+    build: requirements/nginx/
+    image: nginx
+    container_name: nginx
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ${HOST_VOLUME}/wordpress:/var/www/html
+    ports:
+      - "443:443"
+    networks:
+      - network
+
+volumes:
+  database:
+    driver: local
+    driver_opts:
+      type: volume
+      o: bind
+      device: '/home/jvermeer/data/mariadb'
+        #    external: true
+  wp_files:
+    driver: local
+    driver_opts:
+      type: volume
+      o: bind
+      device: '/home/jvermeer/data/wordpress'
+
+networks:
+  network:
+    driver: bridge
